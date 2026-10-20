@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FO Processing Dashboard View - Date: 20-Oct-2026</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --base-font-size: 16px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); padding: 1.5rem; min-height: 100vh; font-size: var(--base-font-size); }
+        .header { text-align: center; margin-bottom: 1.5rem; }
+        .header h1 { font-size: calc(var(--base-font-size) + 6px); color: var(--text-main); font-weight: 700; }
+        .header .report-date { font-size: var(--base-font-size); color: var(--primary); font-weight: 600; margin-top: 0.4rem; }
+        .card { background: var(--card-bg); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.08); max-width: 1600px; margin: 0 auto; transition: all 0.3s ease; }
+        .card-title { font-size: var(--base-font-size); font-weight: 600; margin-bottom: 1rem; color: var(--text-main); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+        .filter-controls { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+        .filter-toggle { font-size: calc(var(--base-font-size) - 2px); font-weight: 500; color: var(--text-main); display: flex; align-items: center; gap: 0.35rem; cursor: pointer; background-color: #f1f5f9; padding: 0.3rem 0.6rem; border-radius: 6px; border: 1px solid var(--border-color); }
+        .filter-toggle input { cursor: pointer; }
+        .btn-fullscreen { font-size: calc(var(--base-font-size) - 2px); font-weight: 600; color: var(--primary); background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 0.3rem 0.65rem; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; transition: all 0.2s; }
+        .btn-fullscreen:hover { background-color: #dbeafe; }
+        .reports-layout { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+        @media (min-width: 1200px) { .reports-layout { grid-template-columns: 1fr 1fr; } }
+        .report-table-container { overflow-x: auto; max-height: 620px; overflow-y: auto; padding-right: 0.2rem; }
+        .report-section-title { margin-top: 1.25rem; margin-bottom: 0.5rem; font-weight: 700; font-size: calc(var(--base-font-size) + 1px); color: var(--primary); display: flex; align-items: center; gap: 0.4rem; }
+        .report-section-title:first-child { margin-top: 0; }
+        .report-table { width: 100%; border-collapse: collapse; font-size: calc(var(--base-font-size) - 1px); text-align: left; margin-bottom: 0.5rem; background-color: #ffffff; }
+        .report-table th, .report-table td { padding: 0.55rem 0.65rem; border: 1px solid var(--border-color); }
+        .report-table th { background-color: #f1f5f9; color: var(--text-main); font-weight: 600; position: sticky; top: 0; z-index: 10; }
+        .report-table tr:nth-child(even) { background-color: #f8fafc; }
+        .report-table .grand-total-row { background-color: #e2e8f0; font-weight: 700; }
+        .discrepancy-box { background-color: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.85rem; margin-bottom: 1rem; }
+        .discrepancy-header { font-weight: 700; font-size: calc(var(--base-font-size) + 1px); margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+        .ageing-table { width: 100%; border-collapse: collapse; font-size: calc(var(--base-font-size) - 2px); margin-top: 0.4rem; margin-bottom: 0.75rem; }
+        .ageing-table th, .ageing-table td { padding: 0.45rem 0.55rem; border: 1px solid var(--border-color); vertical-align: top; }
+        .ageing-table th { background-color: #f8fafc; font-weight: 600; text-align: center; }
+        .ageing-tag { display: inline-block; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 600; font-size: calc(var(--base-font-size) - 3px); }
+        .tag-green { background-color: #dcfce7; color: #15803d; }
+        .tag-yellow { background-color: #fef3c7; color: #b45309; }
+        .tag-red { background-color: #fee2e2; color: #b91c1c; }
+        .tkt-list-container { max-height: 120px; overflow-y: auto; border: 1px solid var(--border-color); background-color: #f8fafc; padding: 0.4rem; border-radius: 6px; font-family: monospace; font-size: calc(var(--base-font-size) - 3px); word-break: break-all; color: var(--text-main); }
+        .clickable-cat { font-weight: 600; color: var(--primary); }
+        .sub-row { background-color: #f1f5f9 !important; font-size: calc(var(--base-font-size) - 3px); }
+        .fullscreen-date { display: none; margin-bottom: 1rem; font-size: calc(var(--base-font-size) + 2px); text-align: center; padding: 0.5rem; background-color: #eff6ff; border-radius: 6px; border: 1px solid #bfdbfe; font-weight: 600; color: var(--primary); }
+        .card.fullscreen-mode { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; border-radius: 0; padding: 2rem; overflow-y: auto; background-color: #ffffff; }
+        .card.fullscreen-mode .report-table-container { max-height: none !important; overflow: visible !important; }
+        .card.fullscreen-mode .fullscreen-date { display: block; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>FO Data Processing Online Dashboard</h1>
+        <div style="display: flex; justify-content: center; align-items: center; gap: 1.5rem; margin-top: 0.5rem; flex-wrap: wrap;">
+            <div class="report-date">Date: 20-Oct-2026</div>
+            <div style="display: flex; align-items: center; gap: 0.4rem; font-size: calc(var(--base-font-size) - 1px);">
+                <label><strong>Font Size:</strong></label>
+                <select id="font-size-selector" style="padding: 0.2rem 0.4rem; border-radius: 4px; border: 1px solid var(--border-color); font-size: inherit;" onchange="changeFontSize()">
+                    <option value="12px">Small (12px)</option>
+                    <option value="14px">Normal (14px)</option>
+                    <option value="16px" selected>Large (16px)</option>
+                    <option value="18px">Extra Large (18px)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" id="report-card">
+        <div class="card-title">
+            <span>Reports, Category Dashboard & Discrepancy Analysis</span>
+            <div class="filter-controls">
+                <label class="filter-toggle">
+                    <input type="checkbox" id="show-tkt-list" onchange="toggleFilters()">
+                    Show Tkt / Detail List
+                </label>
+                <label class="filter-toggle">
+                    <input type="checkbox" id="hide-zero-rows" onchange="toggleFilters()" checked>
+                    Hide Zero Rows
+                </label>
+                <label class="filter-toggle">
+                    <input type="checkbox" id="hide-zero-cats" onchange="toggleFilters()" checked>
+                    Hide Zero Ageing Cols
+                </label>
+                <button class="btn-fullscreen" onclick="toggleFullScreen()">
+                    📸 Full Screenshot Mode
+                </button>
+            </div>
+        </div>
+
+        <div class="fullscreen-date">Date: 20-Oct-2026</div>
+
+        <div class="reports-layout">
+            <div class="report-table-container" id="report-container">
+                <div class="report-section-title">📊 Queue Summary (Region Y / M)</div><table class="report-table"><thead><tr><th>Queue</th><th style="text-align:right;">Y</th><th style="text-align:right;">M</th><th style="text-align:right;">Total</th></tr></thead><tbody><tr><td><strong>FieldOps-SbS</strong></td><td style="text-align:right;">17</td><td style="text-align:right;">0</td><td style="text-align:right; font-weight:600;">17</td></tr><tr><td><strong>FieldOpsSbSAP</strong></td><td style="text-align:right;">39</td><td style="text-align:right;">0</td><td style="text-align:right; font-weight:600;">39</td></tr><tr><td><strong>FieldOpsSbSCombined</strong></td><td style="text-align:right;">62</td><td style="text-align:right;">3</td><td style="text-align:right; font-weight:600;">65</td></tr><tr class="grand-total-row"><td>Grand Total</td><td style="text-align:right;">118</td><td style="text-align:right;">3</td><td style="text-align:right;">121</td></tr></tbody></table><div class="report-section-title">📊 Filter: Yangon SBS (Region General)</div><table class="report-table"><thead><tr><th>Queue</th><th style="text-align:right;">R1</th><th style="text-align:right;">R1S</th><th style="text-align:right;">R2</th><th style="text-align:right;">R2S</th><th style="text-align:right;">Total</th></tr></thead><tbody><tr><td><strong>FieldOps-SbS</strong></td><td style="text-align:right;">2</td><td style="text-align:right;">0</td><td style="text-align:right;">14</td><td style="text-align:right;">1</td><td style="text-align:right; font-weight:600;">17</td></tr><tr><td><strong>FieldOpsSbSAP</strong></td><td style="text-align:right;">4</td><td style="text-align:right;">4</td><td style="text-align:right;">24</td><td style="text-align:right;">7</td><td style="text-align:right; font-weight:600;">39</td></tr><tr><td><strong>FieldOpsSbSCombined</strong></td><td style="text-align:right;">11</td><td style="text-align:right;">11</td><td style="text-align:right;">30</td><td style="text-align:right;">10</td><td style="text-align:right; font-weight:600;">62</td></tr><tr class="grand-total-row"><td>Grand Total</td><td style="text-align:right;">17</td><td style="text-align:right;">15</td><td style="text-align:right;">68</td><td style="text-align:right;">18</td><td style="text-align:right;">118</td></tr></tbody></table><div class="report-section-title">📊 Filter: Mandalay SBS (Region General)</div><table class="report-table"><thead><tr><th>Queue</th><th style="text-align:right;">R6-MDY</th><th style="text-align:right;">Total</th></tr></thead><tbody><tr><td><strong>FieldOpsSbSCombined</strong></td><td style="text-align:right;">3</td><td style="text-align:right; font-weight:600;">3</td></tr><tr class="grand-total-row"><td>Grand Total</td><td style="text-align:right;">3</td><td style="text-align:right;">3</td></tr></tbody></table><div class="report-section-title">🏷️ FieldOps-SbS Category Dashboard</div><table class="report-table"><thead><tr><th>Category</th><th style="text-align:right;">HRY</th><th style="text-align:right;">KGY</th><th style="text-align:right;">MEY</th><th style="text-align:right;">NAY</th><th style="text-align:right;">Total</th></tr></thead><tbody><tr><td><span class="clickable-cat" onclick="toggleCatExpand('All Activities (need arrangement)')">▶  All Activities (need arrangement)</span></td><td style="text-align:right;">-</td><td style="text-align:right;">-</td><td style="text-align:right;">-</td><td style="text-align:right;">1</td><td style="text-align:right; font-weight:700;">1</td></tr><tr><td><span class="clickable-cat" onclick="toggleCatExpand('Complaint')">▶  Complaint</span></td><td style="text-align:right;">5</td><td style="text-align:right;">-</td><td style="text-align:right;">-</td><td style="text-align:right;">-</td><td style="text-align:right; font-weight:700;">5</td></tr><tr><td><span class="clickable-cat" onclick="toggleCatExpand('Device Stolen')">▶  Device Stolen</span></td><td style="text-align:right;">3</td><td style="text-align:right;">-</td><td style="text-align:right;">-</td><td style="text-align:right;">-</td><td style="text-align:right; font-weight:700;">3</td></tr><tr><td><span class="clickable-cat" onclick="toggleCatExpand('Fiber Issue')">▶  Fiber Issue</span></td><td style="text-align:right;">-</td><td style="text-align:right;">1</td><td style="text-align:right;">-</td><td style="text-align:right;">-</td><td style="text-align:right; font-weight:700;">1</td></tr><tr><td><span class="clickable-cat" onclick="toggleCatExpand('Pole Remove/ Pole Relocation')">▶  Pole Remove/ Pole Relocation</span></td><td style="text-align:right;">-</td><td style="text-align:right;">-</td><td style="text-align:right;">2</td><td style="text-align:right;">-</td><td style="text-align:right; font-weight:700;">2</td></tr><tr><td><span class="clickable-cat" onclick="toggleCatExpand('Power Issue')">▶  Power Issue</span></td><td style="text-align:right;">2</td><td style="text-align:right;">-</td><td style="text-align:right;">-</td><td style="text-align:right;">1</td><td style="text-align:right; font-weight:700;">3</td></tr><tr><td><span class="clickable-cat" onclick="toggleCatExpand('Uplink Power Issue')">▶  Uplink Power Issue</span></td><td style="text-align:right;">1</td><td style="text-align:right;">-</td><td style="text-align:right;">-</td><td style="text-align:right;">-</td><td style="text-align:right; font-weight:700;">1</td></tr><tr><td><span class="clickable-cat" onclick="toggleCatExpand('Wrong Queue Transferred')">▶  Wrong Queue Transferred</span></td><td style="text-align:right;">1</td><td style="text-align:right;">-</td><td style="text-align:right;">-</td><td style="text-align:right;">-</td><td style="text-align:right; font-weight:700;">1</td></tr><tr class="grand-total-row"><td>Grand Total</td><td style="text-align:right;">12</td><td style="text-align:right;">1</td><td style="text-align:right;">2</td><td style="text-align:right;">2</td><td style="text-align:right;">17</td></tr></tbody></table>
+            </div>
+            <div class="report-table-container" id="discrepancy-container">
+                <div class="report-section-title">🔍 Blog Discrepancy &amp; Ageing Analysis</div><div class="discrepancy-box"><div class="discrepancy-header" style="color:#2563eb;"><span>🏢 YGN Blog vs TKT DATA (Region Y)</span></div><div style="margin-top:0.6rem;"><span style="font-size:0.8rem; font-weight:700;">⚠️ YGN Blog only [Count: 0]</span><div style="padding:0.5rem; text-align:center; color:var(--text-muted);">No discrepancies</div></div><div style="margin-top:0.6rem;"><span style="font-size:0.8rem; font-weight:700;">⚠️ TKT DATA (Y) only [Count: 46]</span><table class="ageing-table"><thead><tr><th style="text-align:left;">Township</th><th><span class="ageing-tag tag-green">&lt; 3 Days</span></th><th><span class="ageing-tag tag-yellow">&lt; 7 Days</span></th><th><span class="ageing-tag tag-red">≥ 7 Days</span></th><th>Total</th></tr></thead><tbody><tr><td style="font-weight:600;">DAY</td><td style="text-align:center;">4</td><td style="text-align:center;">0</td><td style="text-align:center;">0</td><td style="text-align:center; font-weight:700;">4</td></tr><tr><td style="font-weight:600;">DOY</td><td style="text-align:center;">1</td><td style="text-align:center;">2</td><td style="text-align:center;">0</td><td style="text-align:center; font-weight:700;">3</td></tr><tr><td style="font-weight:600;">HRY</td><td style="text-align:center;">6</td><td style="text-align:center;">3</td><td style="text-align:center;">9</td><td style="text-align:center; font-weight:700;">18</td></tr><tr><td style="font-weight:600;">KGY</td><td style="text-align:center;">1</td><td style="text-align:center;">1</td><td style="text-align:center;">1</td><td style="text-align:center; font-weight:700;">3</td></tr><tr><td style="font-weight:600;">LAY</td><td style="text-align:center;">0</td><td style="text-align:center;">0</td><td style="text-align:center;">1</td><td style="text-align:center; font-weight:700;">1</td></tr><tr><td style="font-weight:600;">LWY</td><td style="text-align:center;">0</td><td style="text-align:center;">0</td><td style="text-align:center;">2</td><td style="text-align:center; font-weight:700;">2</td></tr><tr><td style="font-weight:600;">MEY</td><td style="text-align:center;">0</td><td style="text-align:center;">3</td><td style="text-align:center;">3</td><td style="text-align:center; font-weight:700;">6</td></tr><tr><td style="font-weight:600;">MTY</td><td style="text-align:center;">2</td><td style="text-align:center;">3</td><td style="text-align:center;">0</td><td style="text-align:center; font-weight:700;">5</td></tr><tr><td style="font-weight:600;">NAY</td><td style="text-align:center;">0</td><td style="text-align:center;">1</td><td style="text-align:center;">1</td><td style="text-align:center; font-weight:700;">2</td></tr><tr><td style="font-weight:600;">PNY</td><td style="text-align:center;">0</td><td style="text-align:center;">0</td><td style="text-align:center;">1</td><td style="text-align:center; font-weight:700;">1</td></tr><tr><td style="font-weight:600;">SGY</td><td style="text-align:center;">0</td><td style="text-align:center;">1</td><td style="text-align:center;">0</td><td style="text-align:center; font-weight:700;">1</td></tr><tr style="background-color:#e2e8f0; font-weight:700;"><td>Total</td><td style="text-align:center;">14</td><td style="text-align:center;">14</td><td style="text-align:center;">18</td><td style="text-align:center;">46</td></tr></tbody></table></div></div><div class="discrepancy-box"><div class="discrepancy-header" style="color:#059669;"><span>🏢 MDY Blog vs TKT DATA (Region M)</span></div><div style="margin-top:0.6rem;"><span style="font-size:0.8rem; font-weight:700;">⚠️ MDY Blog only [Count: 0]</span><div style="padding:0.5rem; text-align:center; color:var(--text-muted);">No discrepancies</div></div><div style="margin-top:0.6rem;"><span style="font-size:0.8rem; font-weight:700;">⚠️ TKT DATA (M) only [Count: 0]</span><div style="padding:0.5rem; text-align:center; color:var(--text-muted);">No discrepancies</div></div></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function changeFontSize() {
+            const sizeVal = document.getElementById('font-size-selector').value;
+            document.documentElement.style.setProperty('--base-font-size', sizeVal);
+        }
+
+        function toggleFullScreen() {
+            const reportCard = document.getElementById('report-card');
+            reportCard.classList.toggle('fullscreen-mode');
+            reportCard.querySelector('.btn-fullscreen').innerHTML = reportCard.classList.contains('fullscreen-mode') ? "❌ Exit Fullscreen" : "📸 Full Screenshot Mode";
+        }
+
+        function toggleFilters() {
+            const showTktList = document.getElementById('show-tkt-list').checked;
+            const hideZeroRows = document.getElementById('hide-zero-rows').checked;
+            const hideZeroCats = document.getElementById('hide-zero-cats').checked;
+
+            // 1. Handle Tkt List Containers
+            const tktContainers = document.querySelectorAll('.tkt-list-container, .sub-row');
+            tktContainers.forEach(el => {
+                el.style.display = showTktList ? 'block' : 'none';
+            });
+
+            // 2. Handle Zero Rows in Tables
+            const reportTables = document.querySelectorAll('.report-table');
+            reportTables.forEach(table => {
+                const rows = table.querySelectorAll('tbody tr:not(.grand-total-row)');
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('td:not(:first-child)');
+                    let allZero = true;
+                    cells.forEach(cell => {
+                        const txt = cell.innerText.trim();
+                        if (txt !== '0' && txt !== '-' && txt !== '') allZero = false;
+                    });
+                    if (allZero && hideZeroRows) {
+                        row.style.display = 'none';
+                    } else {
+                        row.style.display = '';
+                    }
+                });
+            });
+
+            // 3. Handle Zero Ageing Cols
+            const ageingTables = document.querySelectorAll('.ageing-table');
+            ageingTables.forEach(table => {
+                const ths = table.querySelectorAll('thead th');
+                let zeroColIndices = [];
+
+                // Check footer total row
+                const footerRow = table.querySelector('tbody tr:last-child');
+                if (footerRow) {
+                    const tds = footerRow.querySelectorAll('td');
+                    tds.forEach((td, idx) => {
+                        if (idx > 0 && idx < tds.length - 1) {
+                            if (td.innerText.trim() === '0') {
+                                zeroColIndices.push(idx);
+                            }
+                        }
+                    });
+                }
+
+                // Hide/Show Columns based on filter
+                const rows = table.querySelectorAll('tr');
+                rows.forEach(row => {
+                    const cells = row.children;
+                    for (let i = 1; i < cells.length - 1; i++) {
+                        if (zeroColIndices.includes(i) && hideZeroCats) {
+                            cells[i].style.display = 'none';
+                        } else {
+                            cells[i].style.display = '';
+                        }
+                    }
+                });
+            });
+        }
+    </script>
+</body>
+</html>
